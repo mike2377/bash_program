@@ -32,14 +32,16 @@ load_questions() {
         fi
         
         if [[ -n "$question" && -n "$opt_a" && -n "$opt_b" && -n "$opt_c" && -n "$opt_d" && -n "$correct" ]]; then
-            question_texts[$index]="$question"
-            # Store only the option text without A) B) etc.
-            local clean_opt_a=$(echo "$opt_a" | sed 's/^[A-D]) //')
-            local clean_opt_b=$(echo "$opt_b" | sed 's/^[A-D]) //')
-            local clean_opt_c=$(echo "$opt_c" | sed 's/^[A-D]) //')
-            local clean_opt_d=$(echo "$opt_d" | sed 's/^[A-D]) //')
-            question_options[$index]="$clean_opt_a|$clean_opt_b|$clean_opt_c|$clean_opt_d"
-            question_correct_answers[$index]="$correct"
+            question_texts[index]="$question"
+            
+            local clean_opt_a clean_opt_b clean_opt_c clean_opt_d
+            clean_opt_a="${opt_a//[A-D]) /}"
+            clean_opt_b="${opt_b//[A-D]) /}"
+            clean_opt_c="${opt_c//[A-D]) /}"
+            clean_opt_d="${opt_d//[A-D]) /}"
+            
+            question_options[index]="$clean_opt_a|$clean_opt_b|$clean_opt_c|$clean_opt_d"
+            question_correct_answers[index]="$correct"
             ((index++))
         fi
     done < "$QUESTIONS_FILE"
@@ -55,8 +57,9 @@ shuffle_questions() {
     local size=${#question_texts[@]}
     [[ $size -eq 0 ]] && return
 
-    # Generate a indices 0 to n-1 and randomly
-    local indices=($(shuf -i 0-$((size - 1))))
+    # Fix : Use mapfile
+    local indices=()
+    mapfile -t indices < <(shuf -i 0-$((size - 1)))
 
     local new_texts=() new_options=() new_answers=()
 
@@ -70,8 +73,6 @@ shuffle_questions() {
     question_options=("${new_options[@]}")
     question_correct_answers=("${new_answers[@]}")
 }
-
-
 
 # Check if quiz is finished
 is_quiz_finished() {
@@ -112,8 +113,9 @@ reset_quiz() {
 # Save score to highscores file (normal mode only)
 save_highscore() {
     local percentage=$((score * 100 / ${#question_texts[@]}))
-    local date=$(date "+%Y-%m-%d")
-    echo "$player_name|$percentage|$score/${#question_texts[@]}|$date" >> "$HIGHSCORES_FILE"
+    local date_str  # Fix SC2155: split declaration and assignment
+    date_str=$(date "+%Y-%m-%d")
+    echo "$player_name|$percentage|$score/${#question_texts[@]}|$date_str" >> "$HIGHSCORES_FILE"
 }
 
 # Display high scores
@@ -131,9 +133,12 @@ show_highscores() {
     echo "            TOP 5 HIGH SCORES"
     echo "=========================================="
     echo ""
-    sort -t'|' -k2 -rn "$HIGHSCORES_FILE" | head -5 | while IFS='|' read -r name score details date; do
-        printf "%-15s | %3d%% | %-12s | %s\n" "$name" "$score" "$details" "$date"
-    done
+    
+    # Fix SC2030/SC2031: Use process substitution instead of pipe
+    while IFS='|' read -r name highscore details date_str; do
+        printf "%-15s | %3d%% | %-12s | %s\n" "$name" "$highscore" "$details" "$date_str"
+    done < <(sort -t'|' -k2 -rn "$HIGHSCORES_FILE" | head -5)
+    
     echo ""
     echo "=========================================="
 }
@@ -169,12 +174,13 @@ display_quiz() {
     # Display question number and question
     echo "Question $((current_question_index + 1)) of ${#question_texts[@]}"
     echo "------------------------------------------"
-    echo "$(get_current_question)"
+    get_current_question
     echo "------------------------------------------"
     echo ""
     
     # Display options
-    local options=$(get_current_options)
+    local options
+    options=$(get_current_options)
     IFS='|' read -r opt_a opt_b opt_c opt_d <<< "$options"
     
     echo "  A) $opt_a"
@@ -231,11 +237,14 @@ show_final_results() {
 # Verify answer in normal mode
 verify_answer_normal() {
     local user_answer=$1
-    local correct_answer=$(get_correct_answer)
+    local correct_answer
+    correct_answer=$(get_correct_answer)
     
     echo ""
     if [[ "$user_answer" == "$correct_answer" ]]; then
         echo -e "\033[0;32mCorrect! ($correct_answer)\033[0m"
+        # Increment score for correct answer
+        ((score++))
     else
         echo -e "\033[0;31mIncorrect. The correct answer was $correct_answer\033[0m"
     fi
@@ -250,7 +259,8 @@ verify_answer_normal() {
 # Verify answer in practice mode
 verify_answer_practice() {
     local user_answer=$1
-    local correct_answer=$(get_correct_answer)
+    local correct_answer 
+    correct_answer=$(get_correct_answer)
     
     echo ""
     if [[ "$user_answer" == "$correct_answer" ]]; then
@@ -306,7 +316,6 @@ main_loop() {
                 read -r
                 exit 0
             fi
-            break
         fi
         
         display_quiz
