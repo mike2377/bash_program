@@ -168,7 +168,6 @@ display_quiz() {
             read -r
             exit 0
         fi
-        return
     fi
     
     # Display question number and question
