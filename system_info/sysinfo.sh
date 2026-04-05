@@ -44,7 +44,7 @@ echo ""
 
 #5. Running Processes, total processes
 total_processes=$(ps aux | wc -l)
-total_processes=$(($total_processes - 1))
+total_processes=$((total_processes - 1))
 
 echo "------------------Processes---------------"
 echo "Running: $total_processes"
@@ -56,13 +56,13 @@ ps aux --sort=-%mem | head -6 | awk '{printf "PID: %-6s | MEM: %-6s | CMD: %s\n"
 echo ""
 
 # Warning if free memory is low
-if [ $free_memory -lt 500 ]; then
+if [ "$free_memory" -lt 500 ]; then
     echo "WARNING: Low memory! Only ${free_memory}MB free."
 fi
 
 # Warning if free disk space is low
-free_disk_num=$(echo $free_disk | sed 's/G//')
-if [ $free_disk_num -lt 10 ]; then
+free_disk_num="${free_disk//G/}"
+if [ "$free_disk_num" -lt 10 ]; then
     echo "WARNING: Low disk space! Only ${free_disk} free."
 fi
 
