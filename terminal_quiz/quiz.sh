@@ -4,9 +4,12 @@
 QUESTIONS_FILE="questions.txt"
 HIGHSCORES_FILE="highscores.txt"
 score=0
+current_streak=0
+longest_streak=0
 current_question_index=0
 player_name=""
-mode="normal"  # normal or practice
+# normal or practice
+mode="normal"  
 
 # Arrays to store questions
 declare -a question_texts
@@ -104,16 +107,18 @@ next_question() {
 }
 
 # Reset quiz state
-reset_quiz() {
-    score=0
-    current_question_index=0
-    shuffle_questions
-}
+#reset_quiz() {
+#    score=0
+#   current_streak=0
+#    longest_streak=0
+#    current_question_index=0
+#    shuffle_questions
+#}
 
-# Save score to highscores file (normal mode only)
+# Save score to highscores file 
 save_highscore() {
     local percentage=$((score * 100 / ${#question_texts[@]}))
-    local date_str  # Fix SC2155: split declaration and assignment
+    local date_str 
     date_str=$(date "+%Y-%m-%d")
     echo "$player_name|$percentage|$score/${#question_texts[@]}|$date_str" >> "$HIGHSCORES_FILE"
 }
@@ -134,7 +139,7 @@ show_highscores() {
     echo "=========================================="
     echo ""
     
-    # Fix SC2030/SC2031: Use process substitution instead of pipe
+    # Fix : Use process substitution instead of pipe
     while IFS='|' read -r name highscore details date_str; do
         printf "%-15s | %3d%% | %-12s | %s\n" "$name" "$highscore" "$details" "$date_str"
     done < <(sort -t'|' -k2 -rn "$HIGHSCORES_FILE" | head -5)
@@ -190,9 +195,10 @@ display_quiz() {
     echo ""
     echo "=========================================="
     
-    # Show score only in normal mode
+    # Show score 
     if [[ "$mode" == "normal" ]]; then
         echo "Score: $score"
+        echo "Streak: $current_streak"
         echo "=========================================="
     else
         echo "PRACTICE MODE - No scoring"
@@ -200,7 +206,7 @@ display_quiz() {
     fi
 }
 
-# Show final results (normal mode only)
+# Show final result
 show_final_results() {
     clear
     echo "=========================================="
@@ -208,10 +214,12 @@ show_final_results() {
     echo "=========================================="
     echo ""
     echo "Player: $player_name"
-    echo "Score: $score / ${#question_texts[@]}"
+    echo "Correct Response: $score"
+    echo "Incorrect Respnse: $((${#question_texts[@]} - score))"
     
     local percentage=$((score * 100 / ${#question_texts[@]}))
     echo "Percentage: ${percentage}%"
+    echo "Long Streak: $longest_streak"
     
     if [[ $percentage -ge 80 ]]; then
         echo "Rating: Excellent!"
@@ -242,20 +250,25 @@ verify_answer_normal() {
     echo ""
     if [[ "$user_answer" == "$correct_answer" ]]; then
         echo -e "\033[0;32mCorrect! ($correct_answer)\033[0m"
-        # Increment score for correct answer
+        # Increment score for correct answer and count streak
         ((score++))
+        ((current_streak++))
+        if ((current_streak > longest_streak)); then
+            longest_streak=$current_streak
+        fi
     else
         echo -e "\033[0;31mIncorrect. The correct answer was $correct_answer\033[0m"
+        current_streak=0
     fi
     
     echo ""
     echo -n "Press Enter to continue..."
     read -r
-    
+
     next_question
 }
 
-# Verify answer in practice mode
+# Verify answer in practice
 verify_answer_practice() {
     local user_answer=$1
     local correct_answer 
@@ -264,18 +277,23 @@ verify_answer_practice() {
     echo ""
     if [[ "$user_answer" == "$correct_answer" ]]; then
         echo "Correct! ($correct_answer)"
+        ((current_streak++))
+        if ((current_streak > longest_streak)); then
+            longest_streak=$current_streak
+        fi
+        next_question
     else
         echo "Incorrect. The correct answer was $correct_answer"
+        current_streak=0
     fi
     
     echo ""
     echo -n "Press Enter to continue..."
     read -r
-    
-    next_question
+    return 1
 }
 
-# Ask for player name (normal mode only)
+# Ask for player name normal mode
 ask_player_name() {
     clear
     echo "=========================================="
@@ -310,6 +328,8 @@ main_loop() {
                 echo "=========================================="
                 echo ""
                 echo "You've completed all ${#question_texts[@]} questions!"
+                echo "Final Streak: $current_streak"
+                echo "Long Streak: $longest_streak"
                 echo ""
                 echo -n "Press Enter to exit..."
                 read -r
@@ -335,9 +355,9 @@ main_loop() {
             
             # Call appropriate verification function
             if [[ "$mode" == "normal" ]]; then
-                verify_answer_normal "$response"
+                verify_answer_normal "$response"  
             else
-                verify_answer_practice "$response"
+                verify_answer_practice "$response"   
             fi
         fi
     done
