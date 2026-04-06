@@ -3,7 +3,7 @@
 2. System Info Dashboard Script
 A lightweight Bash script that generates a real-time "dashboard" of key system statistics directly in your terminal.
 🚀 Project Overview
-This project focuses on mastering Linux CLI tools, command substitution, and clean output formatting. It provides a quick snapshot of a machine's health and identity.
+This project focuses on mastering Linux command-line tools, command substitution, and clean output formatting. It provides a quick snapshot of a machine's health and identity.
 📋 Features
 The sysinfo.sh script displays:
  * System Identity: Current user, hostname, and system date/time.
