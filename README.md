@@ -89,6 +89,7 @@ Score is saved to highscores.txt
 ### Normal Mode
 
 ![Session Start](assets/images/start.png) ![End Session](assets/images/endgame.png)
+
 ![Session Start](assets/images/gameui1.png) ![End Session](assets/images/gameui2.png)
 
 ## View Top Scores
